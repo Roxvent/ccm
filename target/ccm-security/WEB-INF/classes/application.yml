@@ -1,0 +1,4 @@
+application:
+  api:
+    version-1: '/v1'
+    version-2: '/v2'
