@@ -6,6 +6,7 @@ cl\intelidata\security\model\api\DepartamentoListRequest.class
 cl\intelidata\security\model\api\DepartamentoModel.class
 cl\intelidata\security\service\IUsuarioService.class
 cl\intelidata\security\model\api\AuthExtendedDTO.class
+cl\intelidata\security\controller\RouteController.class
 cl\intelidata\security\service\IDepartamentoService.class
 cl\intelidata\security\controller\PaisController.class
 cl\intelidata\security\model\api\RolListResponse.class
@@ -37,6 +38,7 @@ cl\intelidata\security\SecurityApplication.class
 cl\intelidata\security\util\ResponseApiHandler.class
 cl\intelidata\security\controller\AreaController.class
 cl\intelidata\security\security\SecurityConfig.class
+cl\intelidata\security\model\api\AuthExtendedWithAzureDTO.class
 cl\intelidata\security\model\api\RolListRequest.class
 cl\intelidata\security\service\IRolService.class
 cl\intelidata\security\util\CORS.class

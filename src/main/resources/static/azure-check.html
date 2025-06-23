@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScriptoCCM - Iniciar sesión</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Panel izquierdo - Formulario de login */
+        .login-panel {
+            flex: 1;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .login-content {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo-section h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .flag-icon {
+            width: 24px;
+            height: 16px;
+            background: linear-gradient(to bottom, #c60b1e 33%, #ffc400 33%, #ffc400 66%, #c60b1e 66%);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        .login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .required {
+            color: #ef4444;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: #f9fafb;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-input:disabled {
+            background: #f3f4f6;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Lock icon removed as requested */
+
+        .back-button {
+            background: white;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        #buttonContainer {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        #buttonContainer .back-button {
+            margin-bottom: 0px;
+        }
+
+        #buttonContainer .login-button {
+            flex: 2;
+            margin-top: 0;
+        }
+
+        .login-button {
+            width: 100%;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+        }
+
+        /* Azure button style */
+        .login-button.azure-button {
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+        }
+
+        .login-button.azure-button:hover {
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+        }
+
+        .login-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        /* Panel derecho - Bienvenida */
+        .welcome-panel {
+            flex: 1;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="0.5" fill="rgba(255,255,255,0.03)"/><circle cx="75" cy="25" r="0.3" fill="rgba(255,255,255,0.02)"/><circle cx="50" cy="50" r="0.4" fill="rgba(255,255,255,0.025)"/><circle cx="25" cy="75" r="0.3" fill="rgba(255,255,255,0.02)"/><circle cx="75" cy="75" r="0.5" fill="rgba(255,255,255,0.03)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.6;
+        }
+
+        .welcome-content {
+            text-align: center;
+            z-index: 2;
+            position: relative;
+        }
+
+        .welcome-logo {
+            width: 80px;
+            height: 80px;
+            background: #ef4444;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+
+        .welcome-logo::after {
+            content: '☁';
+            font-size: 2rem;
+            color: white;
+        }
+
+        .brand-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ef4444;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .welcome-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            max-width: 400px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .welcome-panel {
+                order: -1;
+                flex: 0 0 200px;
+                padding: 30px 20px;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .login-panel {
+                padding: 30px 20px;
+            }
+
+            .login-form {
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Panel de Login -->
+        <div class="login-panel">
+            <div class="login-content">
+                <div class="logo-section">
+                    <h1>ScriptoCCM</h1>
+                    <div class="flag-icon"></div>
+                </div>
+
+                <div class="login-form">
+                    <h2 class="form-title">Iniciar sesión</h2>
+
+                    <form id="checkAzureForm">
+                        <div class="form-group">
+                            <label class="form-label" for="username">
+                                Usuario <span class="required">*</span>
+                            </label>
+                            <div class="input-container">
+                                <input type="text" id="username" name="username" class="form-input"
+                                    placeholder="Ingrese su usuario" required>
+                                <span id="lockIcon" class="lock-icon"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="passwordField" style="display: none;">
+                            <label class="form-label" for="password">
+                                Contraseña <span class="required">*</span>
+                            </label>
+                            <input type="password" id="password" name="password" class="form-input"
+                                placeholder="Ingrese su contraseña">
+                        </div>
+
+                        <div id="buttonContainer">
+                            <button type="submit" id="submitBtn" class="login-button">
+                                Siguiente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Bienvenida -->
+        <div class="welcome-panel">
+            <div class="welcome-content">
+                <div class="welcome-logo"></div>
+                <div class="brand-name">ScriptoCCM</div>
+                <h1 class="welcome-title">Bienvenido a<br>ScriptoCCM</h1>
+                <p class="welcome-subtitle">
+                    Generamos comunicaciones unificadas y efectivas con sus clientes.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function resetForm() {
+            const usernameInput = document.getElementById('username');
+            const passwordField = document.getElementById('passwordField');
+            const submitBtn = document.getElementById('submitBtn');
+            const buttonContainer = document.getElementById('buttonContainer');
+            const lockIcon = document.getElementById('lockIcon');
+
+            // Reset form state
+            usernameInput.disabled = false;
+            lockIcon.style.display = 'none';
+            passwordField.style.display = 'none';
+            document.getElementById('password').value = '';
+
+            // Reset button
+            submitBtn.textContent = 'Siguiente';
+            submitBtn.className = 'login-button';
+            // Remove any existing onclick handlers
+            submitBtn.onclick = null;
+            submitBtn.disabled = false;
+
+            // Remove back button if it exists
+            const backButton = document.getElementById('backButton');
+            if (backButton) {
+                backButton.remove();
+            }
+            // Enfocar el campo de correo electrónico al volver atrás
+            setTimeout(() => {
+                usernameInput.focus();
+            }, 100);
+        }
+
+        function createBackButton() {
+            const backButton = document.createElement('button');
+            backButton.id = 'backButton';
+            backButton.className = 'back-button';
+            backButton.innerHTML = '&larr; Volver';
+            backButton.onclick = function (e) {
+                e.preventDefault();
+                resetForm();
+            };
+            return backButton;
+        }
+
+        document.getElementById('checkAzureForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const usernameInput = document.getElementById('username');
+            const passwordField = document.getElementById('passwordField');
+            const submitBtn = document.getElementById('submitBtn');
+            const buttonContainer = document.getElementById('buttonContainer');
+            const lockIcon = document.getElementById('lockIcon');
+
+            if (!username) {
+                alert('Por favor, ingrese su correo electrónico.');
+                return;
+            }
+
+            // Si el campo de contraseña está visible, es porque ya verificamos el usuario
+            if (passwordField.style.display === 'block') {
+                const password = document.getElementById('password').value;
+                if (!password) {
+                    alert('Por favor, ingrese su contraseña.');
+                    return;
+                }
+
+                // Simular login con contraseña
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Iniciando sesión...';
+
+                setTimeout(() => {
+                    alert('Login simulado exitoso para: ' + username);
+                    // Aquí iría la lógica real de login
+                    resetForm();
+                }, 1500);
+
+                return;
+            }
+
+            // Lock the username field
+            usernameInput.disabled = true;
+            lockIcon.style.display = 'block';
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Verificando...';
+
+            // Llamada al endpoint de identificación
+            fetch(`http://localhost:8080/ccm-security/external/identification/${encodeURIComponent(username)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Usuario no encontrado');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Respuesta del servidor:', data);
+                    // Add back button
+                    const backButton = createBackButton();
+
+                    if (data.data && data.data.azureAd === 1) {
+                        // Usuario con Azure AD
+                        submitBtn.textContent = 'Continuar con Azure';
+                        submitBtn.className = 'login-button azure-button'; // Add azure button class
+                        passwordField.style.display = 'none';
+
+                        // Clear previous buttons and add back button + azure button
+                        buttonContainer.innerHTML = '';
+                        buttonContainer.appendChild(backButton);
+                        buttonContainer.appendChild(submitBtn);
+
+                        // Configurar el comportamiento del botón de Azure
+                        submitBtn.onclick = function (e) {
+                            e.preventDefault();
+                            alert(`Redirigiendo a Azure AD para: ${data.data.username} (${data.data.roles.join(', ')})`);
+                            // Aquí iría la redirección real a Azure
+                        };
+                    } else {
+                        // Usuario normal - mostrar campo de contraseña
+                        submitBtn.textContent = 'Iniciar sesión';
+                        submitBtn.className = 'login-button'; // Reset to default class
+                        passwordField.style.display = 'block';
+
+                        // Clear previous buttons and add back button + login button
+                        buttonContainer.innerHTML = '';
+                        buttonContainer.appendChild(backButton);
+                        buttonContainer.appendChild(submitBtn);
+
+                        // Enfocar el campo de contraseña
+                        setTimeout(() => {
+                            document.getElementById('password').focus();
+                        }, 100);
+                    }
+
+                    submitBtn.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error en la autenticación:', error);
+                    // Mostrar error y permitir volver atrás
+                    usernameInput.disabled = false;
+                    lockIcon.style.display = 'none';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Siguiente';
+                    alert('Error: ' + (error.message || 'No se pudo conectar con el servidor'));
+                });
+
+        });
+
+        // Efecto de enfoque mejorado
+        document.querySelectorAll('.form-input').forEach(input => {
+            input.addEventListener('focus', function () {
+                this.parentElement.classList.add('focused');
+            });
+
+            input.addEventListener('blur', function () {
+                this.parentElement.classList.remove('focused');
+            });
+        });
+    </script>
+</body>
+
+</html>

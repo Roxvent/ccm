@@ -31,12 +31,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import cl.intelidata.security.service.IUsuarioService;
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import lombok.extern.slf4j.Slf4j;
 
 @Service("userDetailsService")
 @Slf4j
 public class UserServiceImpl implements UserDetailsService, IUsuarioService {
-
+        
+        @Autowired
+        private EntityManager entityManager;
+    
 	@Autowired
 	private IUsuarioDAO dao;
 
@@ -67,7 +72,7 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
 		List<GrantedAuthority> authorities = new ArrayList<>();
 		user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getNombre())));
 		return new User(user.getUsername(), user.getPassword(), user.isEnabled(), true, true, true, authorities);
-	}
+	}  
 	private void setRoles(UsuarioModel user, Usuario o) {
 		if (o.getRoles() != null) {
 			o.getRoles().clear();
@@ -182,24 +187,66 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
 		return null;
 	}
 
-	@Override
-	public ResponseEntity<?> findIdentification(String username) {
-		try{
-			ExternalIdentificationDTO ei = dao.findIdentification(username).orElse(null);
-			List<Rol> rolesByUsername = dao.findRolesByUsername(username);
-			if(ei != null && !rolesByUsername.isEmpty()){
-				return ResponseApiHandler
-						.generateResponse(HttpStatus.OK, new AuthExtendedDTO(ei.getIdEmpresa(),
-								username,
-								rolesByUsername.stream().map(Rol::getNombre).collect(Collectors.toList()),
-								ei.getIdArea(),
-								ei.getIdDepartamento()));
-			}
-		}catch (Exception e){
-			log.error(e.getMessage());
-		}
-		return null;
-	}
+@Override
+public ResponseEntity<?> findIdentification(String username) {
+    ExternalIdentificationDTO ei = null;
+    List<Rol> rolesByUsername = Collections.emptyList();
+    
+    try {
+        // 1. Obtener datos básicos del usuario
+        ei = dao.findIdentification(username).orElse(null);
+        if (ei == null) {
+            return ResponseApiHandler.generateResponse(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        }
+
+        // 2. Obtener roles
+        rolesByUsername = dao.findRolesByUsername(username);
+        
+        // 3. Consulta nativa para obtener azure_ad
+        Integer azureAd;
+        try {
+            azureAd = (Integer) entityManager.createNativeQuery(
+                    "SELECT azure_ad FROM bddesseguridad.empresa WHERE id_empresa = :idEmpresa")
+                .setParameter("idEmpresa", ei.getIdEmpresa())
+                .getSingleResult();
+        } catch (NoResultException e) {
+            log.warn("No se encontró azure_ad para empresa {}", ei.getIdEmpresa());
+            azureAd = 0;
+        }
+
+        // 4. Construir respuesta exitosa
+        AuthExtendedWithAzureDTO response = new AuthExtendedWithAzureDTO(
+            ei.getIdEmpresa(),
+            username,
+            rolesByUsername.stream().map(Rol::getNombre).collect(Collectors.toList()),
+            ei.getIdArea(),
+            ei.getIdDepartamento(),
+            azureAd
+        );
+
+        return ResponseApiHandler.generateResponse(HttpStatus.OK, response);
+
+    } catch (Exception e) {
+        log.error("Error en findIdentification: ", e);
+        
+        // Respuesta de fallback con los datos que tengamos
+        Integer fallbackAzureAd = 0;
+        Long fallbackIdEmpresa = (ei != null) ? ei.getIdEmpresa() : 0L;
+        Long fallbackIdArea = (ei != null) ? ei.getIdArea() : 0L;
+        Long fallbackIdDepto = (ei != null) ? ei.getIdDepartamento() : 0L;
+        
+        AuthExtendedWithAzureDTO errorResponse = new AuthExtendedWithAzureDTO(
+            fallbackIdEmpresa,
+            username,
+            rolesByUsername.stream().map(Rol::getNombre).collect(Collectors.toList()),
+            fallbackIdArea,
+            fallbackIdDepto,
+            fallbackAzureAd
+        );
+        
+        return ResponseApiHandler.generateResponse(HttpStatus.INTERNAL_SERVER_ERROR, errorResponse);
+    }
+}
 
 	@Override
 	public ResponseEntity<?> changePassword(UsuarioModel model, AuthDTO auth) {
