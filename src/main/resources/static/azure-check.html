@@ -413,11 +413,40 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = 'Iniciando sesión...';
 
-                setTimeout(() => {
-                    alert('Login simulado exitoso para: ' + username);
-                    // Aquí iría la lógica real de login
-                    resetForm();
-                }, 1500);
+                // Llamada al endpoint de autenticación
+                fetch('http://localhost:8080/ccm-security/external/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error de autenticación');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Respuesta del servidor:', data);
+                    if (data.status === 200) {
+                        alert('Login exitoso para: ' + username);
+                        resetForm();
+                    } else {
+                        alert(data.message || 'Error desconocido');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Iniciar Sesión';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al iniciar sesión: ' + error.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Iniciar Sesión';
+                });
 
                 return;
             }

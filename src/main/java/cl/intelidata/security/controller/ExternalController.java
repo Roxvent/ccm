@@ -1,5 +1,6 @@
 package cl.intelidata.security.controller;
 
+import cl.intelidata.security.dto.AuthenticationRequest;
 import cl.intelidata.security.service.IUsuarioService;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,5 +24,10 @@ public class ExternalController {
     @GetMapping(value = "/identification/{username}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> findIdentification(@PathVariable("username") String username) {
         return service.findIdentification(username);
+    }
+
+    @PostMapping(value = "/authenticate", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> authenticate(@RequestBody AuthenticationRequest request) {
+        return service.authenticate(request.getUsername(), request.getPassword());
     }
 }

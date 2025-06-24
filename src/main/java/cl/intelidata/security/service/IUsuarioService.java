@@ -19,4 +19,5 @@ public interface IUsuarioService {
 	ResponseEntity<?> delete(long idUser, AuthDTO auth);
 	AuthDTO getIdentification(String username);
 	ResponseEntity<?> findIdentification(String username);
+	ResponseEntity<?> authenticate(String username, String password);
 }

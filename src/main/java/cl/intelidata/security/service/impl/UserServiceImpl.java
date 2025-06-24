@@ -249,6 +249,38 @@ public ResponseEntity<?> findIdentification(String username) {
 }
 
 	@Override
+	public ResponseEntity<?> authenticate(String username, String password) {
+        Map<String, Object> response = new HashMap<>();
+        if (username.isEmpty() || password.isEmpty()) {
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            response.put("message", "Usuario o contraseña vacíos");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        Optional<Usuario> userOptional = dao.findByUsername(username);
+        if (!userOptional.isPresent()) {
+            response.put("status", HttpStatus.NOT_FOUND.value());
+            response.put("message", "Usuario no encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        Usuario user = userOptional.get();
+        if (!user.isEnabled()) {
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            response.put("message", "Usuario inhabilitado");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", "Autenticación exitosa");
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } else {
+            response.put("status", HttpStatus.UNAUTHORIZED.value());
+            response.put("message", "Contraseña incorrecta");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+
+	@Override
 	public ResponseEntity<?> changePassword(UsuarioModel model, AuthDTO auth) {
 		if(auth == null){
 			return ResponseApiHandler

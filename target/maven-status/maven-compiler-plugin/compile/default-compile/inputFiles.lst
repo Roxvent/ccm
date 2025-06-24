@@ -23,6 +23,7 @@ R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\service\impl\Us
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\RolListRequest.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\config\PropertiesConfig.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\GrupoModel.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\dto\AuthenticationRequest.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\GrupoCollection.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\SecurityApplication.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\util\interceptors\Tokenceptor.java
