@@ -26,4 +26,5 @@ public interface IEmpresaService {
 	ResponseEntity<?> findByTenantId(String tenantId);
 
     ResponseEntity<?> findRolByEmpresaId(long idEmpresa, int page, int size);
+    ResponseEntity<?> getAzureLoginUrl(Long idEmpresa);
 }

@@ -2,8 +2,12 @@ package cl.intelidata.security.controller;
 
 import cl.intelidata.security.dto.AuthenticationRequest;
 import cl.intelidata.security.service.IUsuarioService;
+import cl.intelidata.security.service.IEmpresaService;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,13 +25,42 @@ public class ExternalController {
     @Autowired
     IUsuarioService service;
 
+    @Autowired
+    IEmpresaService empresaService;
+
     @GetMapping(value = "/identification/{username}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> findIdentification(@PathVariable("username") String username) {
         return service.findIdentification(username);
     }
 
-    @PostMapping(value = "/authenticate", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> authenticate(@RequestBody AuthenticationRequest request) {
-        return service.authenticate(request.getUsername(), request.getPassword());
+    @PostMapping("/authenticate")
+    public ResponseEntity<?> authenticate(@RequestBody AuthenticationRequest request, HttpServletResponse response) {
+        try {
+            String token = service.authenticate(request.getUsername(), request.getPassword());
+
+            Cookie cookie = new Cookie("jwttoken", token);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true); // Only send over HTTPS
+            cookie.setPath("/");
+
+            if (request.isRememberMe()) {
+                // 8 hours for 'remember me'
+                cookie.setMaxAge(8 * 60 * 60);
+            } else {
+                // Session cookie, expires when the browser is closed
+                cookie.setMaxAge(-1);
+            }
+
+            response.addCookie(cookie);
+
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    @GetMapping(value = "/azure-login/{idEmpresa}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> azureLogin(@PathVariable("idEmpresa") Long idEmpresa) {
+        return empresaService.getAzureLoginUrl(idEmpresa);
     }
 }

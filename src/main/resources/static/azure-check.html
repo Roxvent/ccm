@@ -179,6 +179,28 @@
             box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
         }
 
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .remember-me label {
+            font-size: 0.9rem;
+            color: #4b5563;
+            cursor: pointer;
+            margin-bottom: 0;
+            font-weight: 400;
+        }
+
         .login-button:hover {
             transform: translateY(-1px);
             box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
@@ -306,8 +328,7 @@
                             </label>
                             <div class="input-container">
                                 <input type="text" id="username" name="username" class="form-input"
-                                    placeholder="Ingrese su usuario" required>
-                                <span id="lockIcon" class="lock-icon"></span>
+                                    placeholder="Ingrese su usuario">
                             </div>
                         </div>
 
@@ -319,10 +340,13 @@
                                 placeholder="Ingrese su contraseña">
                         </div>
 
+                        <div id="rememberMeField" class="form-group remember-me" style="display: none;">
+                            <input type="checkbox" id="rememberMe" name="rememberMe">
+                            <label for="rememberMe">Mantener sesión activa</label>
+                        </div>
+
                         <div id="buttonContainer">
-                            <button type="submit" id="submitBtn" class="login-button">
-                                Siguiente
-                            </button>
+                            <button type="submit" id="submitBtn" class="login-button">Siguiente</button>
                         </div>
                     </form>
                 </div>
@@ -343,184 +367,210 @@
     </div>
 
     <script>
-        function resetForm() {
-            const usernameInput = document.getElementById('username');
-            const passwordField = document.getElementById('passwordField');
-            const submitBtn = document.getElementById('submitBtn');
-            const buttonContainer = document.getElementById('buttonContainer');
-            const lockIcon = document.getElementById('lockIcon');
+        // --- Session Check on Page Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // This endpoint is protected. If the request succeeds, the user has a valid session cookie.
+                const response = await fetch('/ccm-security/api/v1/profile');
 
-            // Reset form state
-            usernameInput.disabled = false;
-            lockIcon.style.display = 'none';
-            passwordField.style.display = 'none';
-            document.getElementById('password').value = '';
-
-            // Reset button
-            submitBtn.textContent = 'Siguiente';
-            submitBtn.className = 'login-button';
-            // Remove any existing onclick handlers
-            submitBtn.onclick = null;
-            submitBtn.disabled = false;
-
-            // Remove back button if it exists
-            const backButton = document.getElementById('backButton');
-            if (backButton) {
-                backButton.remove();
+                if (response.ok) {
+                    const userData = await response.json();
+                    sessionStorage.setItem('userData', JSON.stringify(userData));
+                    window.location.href = 'user-profile.html';
+                } else {
+                    // If the response is not ok (e.g., 401), the user is not logged in. The login form will remain visible.
+                    console.log('No active session found. Displaying login form.');
+                }
+            } catch (error) {
+                // Network error or backend is down. The login form will remain visible.
+                console.error('Session check failed:', error);
             }
-            // Enfocar el campo de correo electrónico al volver atrás
-            setTimeout(() => {
-                usernameInput.focus();
-            }, 100);
-        }
+        });
+
+        const checkAzureForm = document.getElementById('checkAzureForm');
+        const usernameInput = document.getElementById('username');
+        const passwordField = document.getElementById('passwordField');
+        const passwordInput = document.getElementById('password');
+        const submitBtn = document.getElementById('submitBtn');
+        const buttonContainer = document.getElementById('buttonContainer');
+
+        // --- State ---
+        let isPasswordStep = false;
+        let identifiedUserData = null; // To store user data after identification
+
+        // --- Helper Functions ---
 
         function createBackButton() {
             const backButton = document.createElement('button');
-            backButton.id = 'backButton';
+            backButton.type = 'button';
+            backButton.textContent = 'Atrás';
             backButton.className = 'back-button';
-            backButton.innerHTML = '&larr; Volver';
-            backButton.onclick = function (e) {
-                e.preventDefault();
-                resetForm();
-            };
+            backButton.addEventListener('click', resetFormToUsernameStep);
             return backButton;
         }
 
-        document.getElementById('checkAzureForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+        function resetFormToUsernameStep() {
+            isPasswordStep = false;
+            usernameInput.disabled = false;
+            usernameInput.value = '';
+            passwordInput.value = '';
+            passwordField.style.display = 'none';
+            document.getElementById('rememberMeField').style.display = 'none';
+            submitBtn.className = 'login-button';
+            hideLoadingState('Siguiente');
 
-            const username = document.getElementById('username').value.trim();
-            const usernameInput = document.getElementById('username');
-            const passwordField = document.getElementById('passwordField');
-            const submitBtn = document.getElementById('submitBtn');
-            const buttonContainer = document.getElementById('buttonContainer');
-            const lockIcon = document.getElementById('lockIcon');
+            const existingBackButton = buttonContainer.querySelector('.back-button');
+            if (existingBackButton) {
+                buttonContainer.removeChild(existingBackButton);
+            }
+            submitBtn.style.flex = '';
+            usernameInput.focus();
+        }
 
+        function showLoadingState(message) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = message;
+        }
+
+        function hideLoadingState(originalText) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+
+        // --- Main Logic ---
+
+        checkAzureForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (isPasswordStep) {
+                await handlePasswordLogin();
+            } else {
+                await handleUsernameIdentification();
+            }
+        });
+
+        async function handleUsernameIdentification() {
+            const username = usernameInput.value.trim();
             if (!username) {
-                alert('Por favor, ingrese su correo electrónico.');
+                alert('Por favor, ingrese su usuario.');
                 return;
             }
 
-            // Si el campo de contraseña está visible, es porque ya verificamos el usuario
-            if (passwordField.style.display === 'block') {
-                const password = document.getElementById('password').value;
-                if (!password) {
-                    alert('Por favor, ingrese su contraseña.');
-                    return;
+            showLoadingState('Verificando...');
+
+            try {
+                const response = await fetch(`/ccm-security/external/identification/${encodeURIComponent(username)}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Error de identificación desconocido.' }));
+                    throw new Error(errorData.message || `Error: ${response.status}`);
                 }
 
-                // Simular login con contraseña
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = 'Iniciando sesión...';
+                const data = await response.json();
 
-                // Llamada al endpoint de autenticación
-                fetch('http://localhost:8080/ccm-security/external/authenticate', {
+                if (data.data && data.data.azureAd === 1) {
+                    await handleAzureRedirect(data.data.idEmpresa);
+                } else {
+                    // Store user data and move to the password step
+                    identifiedUserData = data.data;
+                    setupPasswordStep();
+                }
+            } catch (error) {
+                console.error('Error en la identificación:', error);
+                alert(error.message);
+                hideLoadingState('Siguiente');
+            }
+        }
+
+        async function handleAzureRedirect(idEmpresa) {
+            if (!idEmpresa) {
+                alert('Error: No se pudo obtener el ID de la empresa para la redirección de Azure.');
+                resetFormToUsernameStep();
+                return;
+            }
+
+            showLoadingState('Redirigiendo a Azure AD...');
+            submitBtn.className = 'login-button azure-button';
+
+            try {
+                const response = await fetch(`/ccm-security/external/azure-login/${idEmpresa}`);
+                if (!response.ok) {
+                    const errorBody = await response.json().catch(() => ({ message: 'No se pudo obtener la URL de Azure.' }));
+                    throw new Error(errorBody.message);
+                }
+                const azureData = await response.json();
+                if (azureData.redirectUrl) {
+                    window.location.href = azureData.redirectUrl;
+                } else {
+                    throw new Error('La respuesta del servidor no contiene una URL de redirección.');
+                }
+            } catch (error) {
+                console.error('Error en la redirección de Azure:', error);
+                alert(error.message);
+                resetFormToUsernameStep();
+            }
+        }
+
+        function setupPasswordStep() {
+            isPasswordStep = true;
+            usernameInput.disabled = true;
+            
+            passwordField.style.display = 'block';
+            document.getElementById('rememberMeField').style.display = 'flex';
+            
+            hideLoadingState('Iniciar sesión');
+            
+            const backButton = createBackButton();
+            buttonContainer.insertBefore(backButton, submitBtn);
+            
+            backButton.style.flex = '1';
+            submitBtn.style.flex = '2';
+
+            setTimeout(() => passwordInput.focus(), 100);
+        }
+
+        async function handlePasswordLogin() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!password) {
+                alert('Por favor, ingrese su contraseña.');
+                return;
+            }
+
+            showLoadingState('Iniciando sesión...');
+
+            try {
+                const response = await fetch('/ccm-security/external/authenticate', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         username: username,
-                        password: password
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error de autenticación');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Respuesta del servidor:', data);
-                    if (data.status === 200) {
-                        alert('Login exitoso para: ' + username);
-                        resetForm();
-                    } else {
-                        alert(data.message || 'Error desconocido');
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Iniciar Sesión';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al iniciar sesión: ' + error.message);
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Iniciar Sesión';
+                        password: password,
+                        rememberMe: document.getElementById('rememberMe').checked
+                    }),
                 });
 
-                return;
+                if (response.ok) {
+                    // On successful login, save user data to session and redirect.
+                    if (identifiedUserData) {
+                        sessionStorage.setItem('userData', JSON.stringify(identifiedUserData));
+                    }
+                    window.location.href = 'user-profile.html';
+                } else {
+                    const errorMessage = await response.text();
+                    throw new Error(errorMessage || 'Credenciales inválidas.');
+                }
+            } catch (error) {
+                console.error('Error en el inicio de sesión:', error);
+                alert(error.message);
+                hideLoadingState('Iniciar sesión');
             }
+        }
 
-            // Lock the username field
-            usernameInput.disabled = true;
-            lockIcon.style.display = 'block';
-
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = 'Verificando...';
-
-            // Llamada al endpoint de identificación
-            fetch(`http://localhost:8080/ccm-security/external/identification/${encodeURIComponent(username)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Usuario no encontrado');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Respuesta del servidor:', data);
-                    // Add back button
-                    const backButton = createBackButton();
-
-                    if (data.data && data.data.azureAd === 1) {
-                        // Usuario con Azure AD
-                        submitBtn.textContent = 'Continuar con Azure';
-                        submitBtn.className = 'login-button azure-button'; // Add azure button class
-                        passwordField.style.display = 'none';
-
-                        // Clear previous buttons and add back button + azure button
-                        buttonContainer.innerHTML = '';
-                        buttonContainer.appendChild(backButton);
-                        buttonContainer.appendChild(submitBtn);
-
-                        // Configurar el comportamiento del botón de Azure
-                        submitBtn.onclick = function (e) {
-                            e.preventDefault();
-                            alert(`Redirigiendo a Azure AD para: ${data.data.username} (${data.data.roles.join(', ')})`);
-                            // Aquí iría la redirección real a Azure
-                        };
-                    } else {
-                        // Usuario normal - mostrar campo de contraseña
-                        submitBtn.textContent = 'Iniciar sesión';
-                        submitBtn.className = 'login-button'; // Reset to default class
-                        passwordField.style.display = 'block';
-
-                        // Clear previous buttons and add back button + login button
-                        buttonContainer.innerHTML = '';
-                        buttonContainer.appendChild(backButton);
-                        buttonContainer.appendChild(submitBtn);
-
-                        // Enfocar el campo de contraseña
-                        setTimeout(() => {
-                            document.getElementById('password').focus();
-                        }, 100);
-                    }
-
-                    submitBtn.disabled = false;
-                })
-                .catch(error => {
-                    console.error('Error en la autenticación:', error);
-                    // Mostrar error y permitir volver atrás
-                    usernameInput.disabled = false;
-                    lockIcon.style.display = 'none';
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Siguiente';
-                    alert('Error: ' + (error.message || 'No se pudo conectar con el servidor'));
-                });
-
-        });
-
-        // Efecto de enfoque mejorado
+        // --- UI Enhancements ---
         document.querySelectorAll('.form-input').forEach(input => {
             input.addEventListener('focus', function () {
                 this.parentElement.classList.add('focused');

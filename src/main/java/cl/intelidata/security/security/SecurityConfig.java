@@ -1,11 +1,8 @@
 package cl.intelidata.security.security;
 
-import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -15,21 +12,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
-import org.springframework.security.oauth2.provider.token.TokenEnhancer;
-import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
-import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
-import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
-
-import cl.intelidata.security.config.PropertiesConfig;
-
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-
-import java.util.Arrays;
-
-import java.util.Date;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import cl.intelidata.security.filter.JwtAuthenticationFilter;
+import cl.intelidata.security.security.handler.CustomLogoutHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -37,15 +24,10 @@ import java.util.Date;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Autowired
-	private PropertiesConfig propertiesConfig;
-
-	@Bean
-	public CustomTokenEnhancer tokenEnhancer() {
-		return new CustomTokenEnhancer();
-	}
+	private JwtAuthenticationFilter jwtAuthenticationFilter;
 
 	@Autowired
-	private DataSource dataSource;
+	private CustomLogoutHandler customLogoutHandler;
 
 	// Para Usuarios de BD
 	@Autowired
@@ -73,58 +55,27 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
-		http.sessionManagement()
-				.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+		http.cors().and()
+                .csrf().disable()
+                .authorizeRequests()
+				// Allow access to login, static resources, and swagger
+				.antMatchers("/external/authenticate", "/external/identification/**", "/external/azure-login/**", "/azure-check.html", "/user-profile.html", "/static/**", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/security", "/swagger-ui.html", "/webjars/**").permitAll()
+				// Secure all other endpoints
+				.antMatchers("/api/v1/**").authenticated()
+				.anyRequest().authenticated()
 				.and()
-				.httpBasic().realmName(propertiesConfig.getSecurityRealm()).and().csrf().disable() 	// Desabilitar csrf para
-				// trabajar con token JWT
-				.headers()
-				.frameOptions()
-				.deny()
-				.xssProtection()
-				.block(true);
+				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+				.and()
+				.logout()
+                    .logoutUrl("/api/v1/logout")
+                    .permitAll()
+                    .addLogoutHandler(customLogoutHandler)
+                    .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK))
+                    .invalidateHttpSession(true)
+                    .clearAuthentication(true);
+
+		// Add our custom JWT security filter to validate the token from the cookie
+		http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 	}
 
-	@Bean
-	public JwtAccessTokenConverter accessTokenConverter() {
-		JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-		converter.setSigningKey(propertiesConfig.getSigningKey());
-		return converter;
-	}
-
-	@Bean
-	public TokenStore tokenStore() {
-		return new JwtTokenStore(accessTokenConverter());
-		// return new JdbcTokenStore(this.dataSource);
-	}
-
-	@Bean
-	public TokenEnhancerChain tokenEnhancerChain() {
-		TokenEnhancerChain enhancerChain = new TokenEnhancerChain();
-		enhancerChain.setTokenEnhancers(Arrays.asList(accessTokenConverter(), tokenEnhancer()));
-		return enhancerChain;
-	}
-
-	/*@Bean
-	public TokenEnhancer jwtTokenEnhancer() {
-		return (accessToken, authentication) -> {
-
-			((DefaultOAuth2AccessToken) accessToken).setExpiration(new Date(System.currentTimeMillis() + 3600));
-
-			return accessToken;
-		};
-	}*/
-
-	@Bean
-	@Primary // Crea el bean primero
-	public DefaultTokenServices tokenServices() {
-		DefaultTokenServices defaultTokenServices = new DefaultTokenServices();
-		defaultTokenServices.setTokenStore(tokenStore());
-		defaultTokenServices.setSupportRefreshToken(true);
-		defaultTokenServices.setReuseRefreshToken(false);
-		defaultTokenServices.setTokenEnhancer(tokenEnhancerChain());
-		defaultTokenServices.setAccessTokenValiditySeconds( propertiesConfig.getJwtTokenExpiration());
-		defaultTokenServices.setRefreshTokenValiditySeconds(propertiesConfig.getJwtRefreshTokenExpiration());
-		return defaultTokenServices;
-	}
 }

@@ -5,6 +5,8 @@ import cl.intelidata.security.model.api.UsuarioListRequest;
 import cl.intelidata.security.model.api.UsuarioModel;
 import org.springframework.http.ResponseEntity;
 
+
+
 public interface IUsuarioService {
 	ResponseEntity<?> findById(long id);
 	ResponseEntity<?> findUsuarioByDepartamento(UsuarioListRequest req);
@@ -19,5 +21,6 @@ public interface IUsuarioService {
 	ResponseEntity<?> delete(long idUser, AuthDTO auth);
 	AuthDTO getIdentification(String username);
 	ResponseEntity<?> findIdentification(String username);
-	ResponseEntity<?> authenticate(String username, String password);
+	String authenticate(String username, String password);
+
 }

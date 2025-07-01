@@ -1,28 +1,31 @@
 package cl.intelidata.security.service.impl;
 
-import static cl.intelidata.security.util.Constants.INHABILITED_USER;
-import static cl.intelidata.security.util.Constants.NO_USER;
 
-import java.util.*;
+
+
+
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import cl.intelidata.ccm2.security.entity.*;
-import cl.intelidata.ccm2.security.projections.DTO.ExternalIdentificationDTO;
-import cl.intelidata.ccm2.security.projections.DTO.UserDTO;
-import cl.intelidata.security.model.api.AuthDTO;
-import cl.intelidata.ccm2.security.projections.UserListProjection;
-import cl.intelidata.ccm2.security.repository.*;
-import cl.intelidata.security.model.api.*;
-import cl.intelidata.security.util.Regex;
-import cl.intelidata.security.util.ResponseApiHandler;
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+
+
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -30,9 +33,29 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import cl.intelidata.ccm2.security.entity.Rol;
+import cl.intelidata.ccm2.security.entity.Servicio;
+import cl.intelidata.ccm2.security.entity.Usuario;
+import cl.intelidata.ccm2.security.entity.App;
+import cl.intelidata.ccm2.security.entity.Departamento;
+import cl.intelidata.ccm2.security.projections.UserListProjection;
+import cl.intelidata.ccm2.security.projections.DTO.ExternalIdentificationDTO;
+import cl.intelidata.ccm2.security.projections.DTO.UserDTO;
+import cl.intelidata.ccm2.security.repository.IAppDAO;
+import cl.intelidata.ccm2.security.repository.IDepartamentoDAO;
+import cl.intelidata.ccm2.security.repository.IRolDAO;
+import cl.intelidata.ccm2.security.repository.IServicioDAO;
+import cl.intelidata.ccm2.security.repository.IUsuarioDAO;
+import cl.intelidata.security.model.api.AuthDTO;
+import cl.intelidata.security.model.api.AuthExtendedWithAzureDTO;
+import cl.intelidata.security.model.api.UserModel;
+import cl.intelidata.security.model.api.UserModelResponse;
+import cl.intelidata.security.model.api.UsuarioListRequest;
+import cl.intelidata.security.model.api.UsuarioModel;
 import cl.intelidata.security.service.IUsuarioService;
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
+import cl.intelidata.security.util.JwtUtil;
+import cl.intelidata.security.util.ResponseApiHandler;
+import cl.intelidata.security.util.Regex;
 import lombok.extern.slf4j.Slf4j;
 
 @Service("userDetailsService")
@@ -42,8 +65,11 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
         @Autowired
         private EntityManager entityManager;
     
-	@Autowired
-	private IUsuarioDAO dao;
+    @Autowired
+    private IUsuarioDAO dao;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
 	@Autowired
 	private IAppDAO daoApp;
@@ -59,37 +85,29 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		Usuario user = dao
-				.findUsuario(
-						username.substring(0, username.indexOf("-")),
-						username.substring(username.indexOf("-") + 1));
-		if (user == null) {
-			throw new UsernameNotFoundException(String.format(NO_USER, username));
-		}
-		if (!user.isEnabled()) {
-			throw new UsernameNotFoundException(String.format(INHABILITED_USER, username));
-		}
-		List<GrantedAuthority> authorities = new ArrayList<>();
-		user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getNombre())));
-		return new User(user.getUsername(), user.getPassword(), user.isEnabled(), true, true, true, authorities);
-	}  
-	private void setRoles(UsuarioModel user, Usuario o) {
-		if (o.getRoles() != null) {
-			o.getRoles().clear();
-		} else {
-			o.setRoles(new ArrayList<>());
-		}
-		List<Rol> allRoles = daoRol.listarRoles();
-        allRoles.forEach(rol ->
-				user.getRoles()
-						.stream()
-						.mapToLong(idRol -> idRol)
-						.filter(idRol -> rol.getIdRol() == idRol)
-						.forEach(idRol -> o.getRoles().add(rol)));
-	}
+        Usuario user = dao.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
+        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(),
+                new ArrayList<>());
+    }
 
-	@Override
-	public ResponseEntity<?> findServiciosByUsername(String username) {
+    private void setRoles(UsuarioModel user, Usuario o) {
+        if (o.getRoles() != null) {
+            o.getRoles().clear();
+        } else {
+            o.setRoles(new ArrayList<>());
+        }
+        List<Rol> allRoles = daoRol.listarRoles();
+        allRoles.forEach(rol ->
+                user.getRoles()
+                        .stream()
+                        .mapToLong(idRol -> idRol)
+                        .filter(idRol -> rol.getIdRol() == idRol)
+                        .forEach(idRol -> o.getRoles().add(rol)));
+    }
+
+    @Override
+    public ResponseEntity<?> findServiciosByUsername(String username) {
 		Map<String, Object> response = new HashMap<>();
 		if(username.isEmpty()){
 			response.put("status", HttpStatus.BAD_REQUEST.value());
@@ -175,16 +193,23 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
 
 	@Override
 	public AuthDTO getIdentification(String username) {
-		try{
-			Long idEmpresa = dao.findEmpresaByUsername(username).orElse(null);
-			List<Rol> rolesByUsername = dao.findRolesByUsername(username);
-			if(idEmpresa != null && !rolesByUsername.isEmpty()){
-				return new AuthDTO(idEmpresa, username, rolesByUsername.stream().map(Rol::getNombre).collect(Collectors.toList()));
+		try {
+			String processedUsername = username;
+			if (username.contains("@")) {
+				processedUsername = username.split("@")[0];
 			}
-		}catch (Exception e){
-			log.error(e.getMessage());
+			final String finalUsername = processedUsername;
+			Usuario user = dao.findByUsername(finalUsername)
+					.orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + finalUsername));
+			AuthDTO authDTO = new AuthDTO();
+			authDTO.setIdEmpresa(user.getDepartamento().getArea().getEmpresa().getIdEmpresa());
+			authDTO.setUsername(user.getUsername());
+			authDTO.setRoles(user.getRoles().stream().map(Rol::getNombre).collect(Collectors.toList()));
+			return authDTO;
+		} catch (Exception e) {
+			log.error("Error getting identification for user {}: {}", username, e.getMessage());
+			return null;
 		}
-		return null;
 	}
 
 @Override
@@ -249,34 +274,30 @@ public ResponseEntity<?> findIdentification(String username) {
 }
 
 	@Override
-	public ResponseEntity<?> authenticate(String username, String password) {
-        Map<String, Object> response = new HashMap<>();
-        if (username.isEmpty() || password.isEmpty()) {
-            response.put("status", HttpStatus.BAD_REQUEST.value());
-            response.put("message", "Usuario o contraseña vacíos");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+	public String authenticate(String username, String password) {
+        String dbUsername = username;
+        if (username.contains("@")) {
+            dbUsername = username.split("@")[0];
         }
-        Optional<Usuario> userOptional = dao.findByUsername(username);
+
+        Optional<Usuario> userOptional = dao.findByUsername(dbUsername);
+
         if (!userOptional.isPresent()) {
-            response.put("status", HttpStatus.NOT_FOUND.value());
-            response.put("message", "Usuario no encontrado");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            throw new UsernameNotFoundException("Usuario no encontrado: " + dbUsername);
         }
+
         Usuario user = userOptional.get();
+
         if (!user.isEnabled()) {
-            response.put("status", HttpStatus.FORBIDDEN.value());
-            response.put("message", "Usuario inhabilitado");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            throw new DisabledException("Usuario inhabilitado: " + dbUsername);
         }
+
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         if (passwordEncoder.matches(password, user.getPassword())) {
-            response.put("status", HttpStatus.OK.value());
-            response.put("message", "Autenticación exitosa");
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            UserDetails userDetails = new User(user.getUsername(), user.getPassword(), new ArrayList<>());
+           return jwtUtil.generateToken(userDetails);
         } else {
-            response.put("status", HttpStatus.UNAUTHORIZED.value());
-            response.put("message", "Contraseña incorrecta");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            throw new BadCredentialsException("Credenciales inválidas para el usuario: " + dbUsername);
         }
     }
 

@@ -8,7 +8,10 @@ import cl.intelidata.ccm2.security.entity.*;
 import cl.intelidata.ccm2.security.projections.EmpresaProjection;
 import cl.intelidata.ccm2.security.projections.GrupoByRolProjection;
 import cl.intelidata.ccm2.security.projections.UsuarioByRolProjection;
+
 import cl.intelidata.ccm2.security.repository.*;
+import cl.intelidata.security.dto.AzureRedirectResponse;
+import cl.intelidata.security.dto.ErrorResponse;
 import cl.intelidata.security.model.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -40,10 +43,12 @@ public class EmpresaServiceImpl implements IEmpresaService {
 	private AuthKeyRepository authKeyRepository;
 	@Autowired
 	GrupoRepository grupoRepository;
+
+
 	@Autowired
 	IServicioDAO servicioRepository;
 
-	@Override
+        @Override
 	public void registrar(EmpresaModel empresa) {
 		Empresa o = new Empresa();
 		o.setNombre(empresa.getNombre());
@@ -351,5 +356,28 @@ public class EmpresaServiceImpl implements IEmpresaService {
 		PageImpl<RolGrupoVinculacion> pageRolGrupoVinculacion = new PageImpl<>(rgvList, rolGroupBy.getPageable(), rolGroupBy.getTotalElements());
 
 		return ResponseEntity.ok(pageRolGrupoVinculacion);
+	}
+
+	@Override
+	public ResponseEntity<?> getAzureLoginUrl(Long idEmpresa) {
+		try {
+						java.util.Optional<cl.intelidata.ccm2.security.entity.Empresa> empresaOptional = dao.findById(idEmpresa);
+			if (!empresaOptional.isPresent()) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("No se encontró la empresa con el ID especificado."));
+			}
+
+			cl.intelidata.ccm2.security.entity.AuthKey authKey = empresaOptional.get().getAuthKey();
+			if (authKey == null) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("No se encontró clave de autenticación para la empresa especificada."));
+			}
+
+			String redirectUrl = String.format("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&response_mode=query&scope=openid+profile+email",
+				authKey.getTenantId(), authKey.getClientId(), "http://localhost:8080/ccm-security/external/azure-callback");
+			
+			return ResponseEntity.ok(new AzureRedirectResponse(redirectUrl));
+		} catch (Exception e) {
+			log.error("Error al construir la URL de redirección de Azure AD", e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("Error interno del servidor al procesar la solicitud: " + e.getMessage()));
+		}
 	}
 }

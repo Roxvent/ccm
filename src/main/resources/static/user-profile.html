@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil de Usuario</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; color: #333; }
+        .profile-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); text-align: left; width: 100%; max-width: 400px; }
+        h1 { text-align: center; margin-bottom: 30px; font-size: 24px; color: #1c1e21; }
+        .profile-field { margin-bottom: 15px; }
+        .profile-field strong { display: block; margin-bottom: 5px; color: #606770; font-size: 14px; }
+        .profile-field span { font-size: 16px; }
+        #logout-btn { width: 100%; background-color: #e44d5a; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 20px; transition: background-color 0.2s; }
+        #logout-btn:hover { background-color: #d02c3a; }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <h1>Perfil de Usuario</h1>
+        <div class="profile-field">
+            <strong>Usuario:</strong>
+            <span id="username"></span>
+        </div>
+        <div class="profile-field">
+            <strong>ID Empresa:</strong>
+            <span id="idEmpresa"></span>
+        </div>
+        <div class="profile-field">
+            <strong>Roles:</strong>
+            <span id="roles"></span>
+        </div>
+        <button id="logout-btn">Cerrar Sesión</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userData = JSON.parse(sessionStorage.getItem('userData'));
+            const logoutBtn = document.getElementById('logout-btn');
+
+            if (userData) {
+                document.getElementById('username').textContent = userData.username || 'No disponible';
+                document.getElementById('idEmpresa').textContent = userData.idEmpresa || 'No disponible';
+                document.getElementById('roles').textContent = userData.roles ? userData.roles.join(', ') : 'No disponible';
+            } else {
+                // If no user data is found, redirect back to the login page.
+                window.location.href = 'azure-check.html';
+            }
+
+            logoutBtn.addEventListener('click', () => {
+                fetch('/ccm-security/api/v1/logout', { method: 'POST' })
+                    .catch(error => console.error('Logout request failed:', error)) // Log error but continue
+                    .finally(() => {
+                        // Always clear local session data and redirect to login page
+                        sessionStorage.removeItem('userData');
+                        window.location.href = 'azure-check.html';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -21,8 +21,10 @@ R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\UserM
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\NavigationResponse.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\service\impl\UserServiceImpl.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\RolListRequest.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\util\JwtUtil.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\config\PropertiesConfig.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\GrupoModel.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\dto\ErrorResponse.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\dto\AuthenticationRequest.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\GrupoCollection.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\SecurityApplication.java
@@ -36,6 +38,7 @@ R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\util\TokenCiphe
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\util\ResponseApiHandler.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\controller\EmpresaController.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\controller\RouteController.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\config\ApplicationSecurityConfig.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\UsuarioRequest.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\PaisListResponse.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\security\AuthorizationServerConfig.java
@@ -43,8 +46,11 @@ R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\service\IUsuari
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\util\Constants.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\service\impl\RolServiceImpl.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\security\ResourceServerConfig.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\security\handler\CustomLogoutHandler.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\DepartamentoListRequest.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\controller\ProfileController.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\service\IRolService.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\filter\JwtAuthenticationFilter.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\controller\AreaController.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\util\Regex.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\UsuarioListResponse.java
@@ -66,6 +72,7 @@ R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\controller\Usua
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\AreaModel.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\config\InterceptorConfig.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\AuthDTO.java
+R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\dto\AzureRedirectResponse.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\service\IAreaService.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\controller\MenuController.java
 R:\Holynsis\Intellidata\ccm\src\main\java\cl\intelidata\security\model\api\ResponseEmpresaList.java
