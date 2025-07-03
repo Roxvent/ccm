@@ -57,6 +57,17 @@ import cl.intelidata.security.util.JwtUtil;
 import cl.intelidata.security.util.ResponseApiHandler;
 import cl.intelidata.security.util.Regex;
 import lombok.extern.slf4j.Slf4j;
+import cl.intelidata.security.service.IEmpresaService;
+import cl.intelidata.ccm2.security.entity.AuthKey;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpMethod;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 
 @Service("userDetailsService")
 @Slf4j
@@ -82,6 +93,9 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
 
 	@Autowired
 	private IServicioDAO servicioDao;
+
+	@Autowired
+	private IEmpresaService empresaService;
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -194,13 +208,8 @@ public class UserServiceImpl implements UserDetailsService, IUsuarioService {
 	@Override
 	public AuthDTO getIdentification(String username) {
 		try {
-			String processedUsername = username;
-			if (username.contains("@")) {
-				processedUsername = username.split("@")[0];
-			}
-			final String finalUsername = processedUsername;
-			Usuario user = dao.findByUsername(finalUsername)
-					.orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + finalUsername));
+			Usuario user = dao.findByUsername(username)
+					.orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
 			AuthDTO authDTO = new AuthDTO();
 			authDTO.setIdEmpresa(user.getDepartamento().getArea().getEmpresa().getIdEmpresa());
 			authDTO.setUsername(user.getUsername());
@@ -535,6 +544,63 @@ public ResponseEntity<?> findIdentification(String username) {
 		return ResponseApiHandler
 				.generateResponse(HttpStatus.FORBIDDEN);
 	}
+
+	@Override
+    public String handleAzureCallback(String code, String state) throws Exception {
+        Long idEmpresa = Long.parseLong(state);
+
+                ResponseEntity<?> responseEntity = empresaService.findAuthKey(idEmpresa);
+        AuthKey authKey = (AuthKey) responseEntity.getBody();
+        if (authKey == null) {
+            throw new Exception("Azure AD configuration not found for company ID: " + idEmpresa);
+        }
+
+        String clientId = authKey.getClientId();
+        String clientSecret = authKey.getClientSecret();
+        String tenantId = authKey.getTenantId();
+        // Asegúrate de que esta URL de redirección esté registrada en tu aplicación de Azure AD
+        String redirectUri = "http://localhost:8080/ccm-security/external/azure-callback";
+
+        RestTemplate restTemplate = new RestTemplate();
+        String tokenUrl = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("client_id", clientId);
+        map.add("client_secret", clientSecret);
+        map.add("grant_type", "authorization_code");
+        map.add("code", code);
+        map.add("redirect_uri", redirectUri);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode rootNode = objectMapper.readTree(response.getBody());
+        String accessToken = rootNode.path("access_token").asText();
+
+        if (accessToken == null || accessToken.isEmpty()) {
+            throw new Exception("Could not obtain access token from Azure AD.");
+        }
+
+        HttpHeaders graphHeaders = new HttpHeaders();
+        graphHeaders.setBearerAuth(accessToken);
+        HttpEntity<String> graphEntity = new HttpEntity<>(graphHeaders);
+
+        String graphUrl = "https://graph.microsoft.com/v1.0/me";
+        ResponseEntity<String> graphResponse = restTemplate.exchange(graphUrl, HttpMethod.GET, graphEntity, String.class);
+        JsonNode userNode = objectMapper.readTree(graphResponse.getBody());
+        String userPrincipalName = userNode.path("userPrincipalName").asText();
+
+        if (userPrincipalName == null || userPrincipalName.isEmpty()) {
+            throw new Exception("Could not get user information from Microsoft Graph.");
+        }
+
+        UserDetails userDetails = loadUserByUsername(userPrincipalName);
+        return jwtUtil.generateToken(userDetails);
+    }
 
 	/*
 

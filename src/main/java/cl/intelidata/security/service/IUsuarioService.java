@@ -23,4 +23,6 @@ public interface IUsuarioService {
 	ResponseEntity<?> findIdentification(String username);
 	String authenticate(String username, String password);
 
+	String handleAzureCallback(String code, String state) throws Exception;
+
 }

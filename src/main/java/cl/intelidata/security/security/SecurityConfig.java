@@ -59,7 +59,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable()
                 .authorizeRequests()
 				// Allow access to login, static resources, and swagger
-				.antMatchers("/external/authenticate", "/external/identification/**", "/external/azure-login/**", "/azure-check.html", "/user-profile.html", "/static/**", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/security", "/swagger-ui.html", "/webjars/**").permitAll()
+				.antMatchers("/external/authenticate", "/external/identification/**", "/external/azure-login/**", "/external/azure-callback", "/azure-check.html", "/static/**", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/security", "/swagger-ui.html", "/webjars/**").permitAll()
 				// Secure all other endpoints
 				.antMatchers("/api/v1/**").authenticated()
 				.anyRequest().authenticated()
